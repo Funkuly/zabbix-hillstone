@@ -1,0 +1,403 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 36bff6c29af64692839d077febfc7079
+      name: 'Templates/Network devices'
+  templates:
+    - uuid: 2768da9d88344af08a7d81367550e178
+      template: 'Hillstone StoneOS 5.5'
+      name: 'Hillstone StoneOS 5.5'
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - uuid: f24aedb9c1db40629529e7ce9f004e71
+          name: 'ICMP ping'
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          triggers:
+            - uuid: a27c01b6fe3146a48e47715081237d0d
+              expression: 'max(/Hillstone StoneOS 5.5/icmpping,#3)=0'
+              name: '系统 ping 不通，请检查网络！'
+              priority: DISASTER
+              manual_close: 'YES'
+        - uuid: 1566f70d6a3b46ffa166c34785f2aebf
+          name: 'ICMP loss'
+          type: SIMPLE
+          key: icmppingloss
+          history: 7d
+          value_type: FLOAT
+          units: '%'
+          triggers:
+            - uuid: 6798cc01f1e5489282864c5a3ff4e940
+              expression: 'min(/Hillstone StoneOS 5.5/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/Hillstone StoneOS 5.5/icmppingloss,5m)<100'
+              name: '系统 ping 丢包严重，请检查网络！'
+              priority: WARNING
+              manual_close: 'YES'
+              dependencies:
+                - name: '系统 ping 不通，请检查网络！'
+                  expression: 'max(/Hillstone StoneOS 5.5/icmpping,#3)=0'
+        - uuid: 66d95fde631c4c90872a1039f3b215a4
+          name: CPU利用率
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.3.0
+          key: system.cpu.util
+          history: 7d
+          units: '%'
+          triggers:
+            - uuid: 246a5cb7bb874d2f907db7a6bdba7ffa
+              expression: 'max(/Hillstone StoneOS 5.5/system.cpu.util,1m)>{$CPU.UTIL.CRIT}'
+              name: 'CPU利用率已超{$CPU.UTIL.CRIT}，请注意检查！'
+              priority: HIGH
+              manual_close: 'YES'
+        - uuid: 6e279c6c80364aa6bf08acb665788575
+          name: 内存利用率
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.17.0
+          key: system.memory.util
+          history: 7d
+          units: '%'
+          triggers:
+            - uuid: 46f66552486944d191b0e51fa9cc6c0f
+              expression: 'max(/Hillstone StoneOS 5.5/system.memory.util,1m)>{$MEMORY.UTIL.CRIT}'
+              name: 'Memory利用率已超{$MEMORY.UTIL.CRIT}，请注意检查！'
+              priority: HIGH
+              manual_close: 'YES'
+        - uuid: e6e61b95a3e64db8bf1cb7f16bf47565
+          name: 系统支持的最大会话数
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.6.0
+          key: system.session.all
+          history: 7d
+        - uuid: 800af1cbb73944df8fd548d82486e1bc
+          name: 当前建立的会话数
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.7.0
+          key: system.session.now
+          history: 7d
+        - uuid: 7e2b1850a77e4d4e97d12c1057914fd1
+          name: 当前TCP会话数
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.27.0
+          key: system.session.tcp
+          history: 7d
+        - uuid: 404ff90360f74f83a9f9f496826895c3
+          name: 当前UDP会话数
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.28.0
+          key: system.session.udp
+          history: 7d
+        - uuid: 59a985ffd490497c842e69ec83f1e966
+          name: 会话利用率
+          type: CALCULATED
+          key: system.session.util
+          history: 7d
+          value_type: FLOAT
+          units: '%'
+          params: 'last(//system.session.now)/last(//system.session.all)*100'
+          triggers:
+            - uuid: d03e7c4b5cf044d79d758ca1fbc55a48
+              expression: 'max(/Hillstone StoneOS 5.5/system.session.util,1m)>{$SESSION.UTIL.CRIT}'
+              name: '会话利用率已超{$SESSION.UTIL.CRIT}，请注意检查！'
+              priority: AVERAGE
+              manual_close: 'YES'
+        - uuid: 7f5578a0623240ba8c0dac9dee63c2bb
+          name: 产品序列号
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.28557.2.2.1.1.0
+          key: system.sn
+          delay: 1h
+          history: 7d
+          trends: '0'
+          value_type: TEXT
+        - uuid: 976316ab5c3b4509a1e05299e6cf5bf0
+          name: 系统运行时长
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.6.3.10.2.1.3.0
+          key: system.uptime
+          history: 7d
+          units: s
+      discovery_rules:
+        - uuid: 0884a461c0034bddbb5a62428bc85c89
+          name: 'Get IPSec Tunnel'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#TUNNELID},.1.3.6.1.4.1.28557.2.1.1.1.1.1,{#TUNNELNAME},.1.3.6.1.4.1.28557.2.1.1.1.1.2]'
+          key: ipsec.tunnel
+          lifetime: 1h
+          item_prototypes:
+            - uuid: 59d635d8b4724000a6949ef52828bd7a
+              name: 'tunnel {#TUNNELNAME} 状态'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.1.1.1.1.12.{#TUNNELID}'
+              key: 'ipsec.status.tunnel[{#TUNNELNAME}]'
+              history: 7d
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - 活跃
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - 不活跃
+        - uuid: 5b1d6110941c4e479bea8a0d002aecd9
+          name: 'Get Fan Status'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#FANINDEX},.1.3.6.1.4.1.28557.2.26.1.2.1.1,{#FANDESCR},.1.3.6.1.4.1.28557.2.26.1.2.1.2]'
+          key: system.fan
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 5949cd2c3e754afea4eb8b3011246e7c
+              name: '风扇 {#FANDESCR} 状态'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.26.1.2.1.5.{#FANINDEX}'
+              key: 'fan.status[{#FANDESCR}]'
+              history: 7d
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '0'
+                    - 良好
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - 不在位
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - 警告
+                - type: STR_REPLACE
+                  parameters:
+                    - '3'
+                    - 失败
+                - type: STR_REPLACE
+                  parameters:
+                    - '4'
+                    - 失败或者未供电
+                - type: STR_REPLACE
+                  parameters:
+                    - '5'
+                    - 无风扇状态因为设备/子卡本身无风扇
+              trigger_prototypes:
+                - uuid: 612998e013a44a788da61eb2c3fbf6e0
+                  expression: 'last(/Hillstone StoneOS 5.5/fan.status[{#FANDESCR}])<>"良好" and last(/Hillstone StoneOS 5.5/fan.status[{#FANDESCR}])<>"无风扇状态因为设备/子卡本身无风扇"'
+                  name: '风扇{#FANDESCR}现在为{ITEM.VALUE} ！'
+        - uuid: 5fc04e910e8d4f61b72f71f5a13d37c2
+          name: 'Get System Interface'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#IFINDEX},.1.3.6.1.4.1.28557.2.6.1.3.1.1,{#IFNAME},.1.3.6.1.4.1.28557.2.6.1.3.1.2,{#IFSTATUS},.1.3.6.1.2.1.2.2.1.8]'
+          key: system.interface
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#IFNAME}'
+                value: ^tunnel
+                operator: NOT_MATCHES_REGEX
+                formulaid: A
+              - macro: '{#IFSTATUS}'
+                value: '1'
+                formulaid: B
+          lifetime: 7d
+          item_prototypes:
+            - uuid: f0ceb15238844c17834e45a9cf9487d0
+              name: 'interface {#IFNAME} ip 地址'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.6.1.3.1.4.{#IFINDEX}'
+              key: 'hillstone.interface.address[{#IFNAME}]'
+              delay: 1h
+              history: 7d
+              trends: '0'
+              value_type: TEXT
+            - uuid: 9f195802fc274dc19de8148a8d2110b6
+              name: 'interface {#IFNAME} 入接口速率'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.6.1.3.1.19.{#IFINDEX}'
+              key: 'hillstone.interface.inrate[{#IFNAME}]'
+              history: 7d
+            - uuid: 0aef255a951544d190c0ea1476422c00
+              name: 'interface {#IFNAME} 出接口速率'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.6.1.3.1.20.{#IFINDEX}'
+              key: 'hillstone.interface.outrate[{#IFNAME}]'
+              history: 7d
+            - uuid: 44214c38c1764c52b0e51f1a5a3c38db
+              name: 'interface {#IFNAME} 状态'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.2.1.2.2.1.8.{#IFINDEX}'
+              key: 'hillstone.interface.status[{#IFNAME}]'
+              delay: 30s
+              history: 7d
+              trends: '0'
+              value_type: CHAR
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - up
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - down
+              trigger_prototypes:
+                - uuid: 4a545dd3859d45a7b0ff4cb0369e3a95
+                  expression: 'last(/Hillstone StoneOS 5.5/hillstone.interface.status[{#IFNAME}])="down"'
+                  name: 'interface {#IFNAME} change to {ITEM.VALUE} ！'
+                  priority: HIGH
+                  manual_close: 'YES'
+        - uuid: ca59b9160c824d1e81d00521cda866ea
+          name: 'Get Power Status'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#POWERINDEX},.1.3.6.1.4.1.28557.2.27.1.2.1.1,{#POWERDESCR},.1.3.6.1.4.1.28557.2.27.1.2.1.2]'
+          key: system.power
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 8960f6ed032a40ab84d8c2d4f5c9b279
+              name: '电源 {#POWERDESCR} 状态'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.27.1.2.1.3.{#POWERINDEX}'
+              key: 'system.power.status[{#POWERINDEX}]'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '0'
+                    - 良好
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - 不在位
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - 警告
+                - type: STR_REPLACE
+                  parameters:
+                    - '3'
+                    - 失败
+                - type: STR_REPLACE
+                  parameters:
+                    - '4'
+                    - 失败或者未供电
+                - type: STR_REPLACE
+                  parameters:
+                    - '5'
+                    - 系统不支持获取电源状态
+              trigger_prototypes:
+                - uuid: 64cc10bfc31641aebfdda074810b697b
+                  expression: 'last(/Hillstone StoneOS 5.5/system.power.status[{#POWERINDEX}])<>"良好" and last(/Hillstone StoneOS 5.5/system.power.status[{#POWERINDEX}])<>"系统不支持获取电源状态"'
+                  name: '电源{#POWERDESCR}现在为{ITEM.VALUE} ！'
+                  priority: HIGH
+        - uuid: 711e5188657c4f0c9d1c5e0dcdac2bdd
+          name: 'Get SNAT rules Inform'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNATID},.1.3.6.1.4.1.28557.2.33.1.1.1.1.1]'
+          key: system.snat
+          lifetime: 7d
+          item_prototypes:
+            - uuid: dd2f1ec7fca74fe3982703e80485c97c
+              name: 'SNAT ID {#SNATID} TCP 资源总数'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.33.1.1.1.1.2.{#SNATID}'
+              key: 'snat.tcp.total[{#SNATID}]'
+              history: 7d
+            - uuid: fe264e6550bf4606be0795b1bc142bb5
+              name: 'SNAT ID {#SNATID} TCP 资源已使用数'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.33.1.1.1.1.3.{#SNATID}'
+              key: 'snat.tcp.used[{#SNATID}]'
+              history: 7d
+            - uuid: 9da28801c8cc4b08bb37d7c0cb5c9237
+              name: 'SNAT ID {#SNATID} TCP 资源利用率'
+              type: CALCULATED
+              key: 'snat.tcp.util[{#SNATID}]'
+              value_type: FLOAT
+              units: '%'
+              params: 'last(//snat.tcp.used[{#SNATID}])/last(//snat.tcp.total[{#SNATID}])*100'
+              trigger_prototypes:
+                - uuid: 122731870a4645b3bc4d0fdc8cc322a7
+                  expression: 'last(/Hillstone StoneOS 5.5/snat.tcp.util[{#SNATID}])>=90'
+                  name: 'SNAT ID {#SNATID} TCP 资源利用率已超90%！'
+                  priority: WARNING
+                  manual_close: 'YES'
+            - uuid: 4ee3cdaf972b4d6bbce50243f71c83ef
+              name: 'SNAT ID {#SNATID} UDP 资源总数'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.33.1.1.1.1.4.{#SNATID}'
+              key: 'snat.udp.total[{#SNATID}]'
+              history: 7d
+            - uuid: a42e0aa60502433c92c5cf525d71e6c3
+              name: 'SNAT ID {#SNATID} UDP 资源已使用数'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.33.1.1.1.1.5.{#SNATID}'
+              key: 'snat.udp.used[{#SNATID}]'
+              history: 7d
+            - uuid: b427b17a2d864d01aeee583c85a820af
+              name: 'SNAT ID {#SNATID} UDP 资源利用率'
+              type: CALCULATED
+              key: 'snat.udp.util[{#SNATID}]'
+              history: 7d
+              value_type: FLOAT
+              units: '%'
+              params: 'last(//snat.udp.used[{#SNATID}])/last(//snat.udp.total[{#SNATID}])*100'
+              trigger_prototypes:
+                - uuid: 83af46895da34907a8e7b86ca62834ed
+                  expression: 'last(/Hillstone StoneOS 5.5/snat.udp.util[{#SNATID}])>=90'
+                  name: 'SNAT ID {#SNATID} UDP 资源利用率已超90%！'
+                  priority: WARNING
+        - uuid: 9cbfaa188f334c75858a854d8a6bfc5a
+          name: 'Get Temperature Status'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#TEMINDEX},.1.3.6.1.4.1.28557.2.28.1.2.1.1,{#TEMDESCR},.1.3.6.1.4.1.28557.2.28.1.2.1.2]'
+          key: system.tem
+          item_prototypes:
+            - uuid: 80a0e789dae64ac4a7d4da38764ff004
+              name: '{#TEMDESCR} 温度'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.28557.2.28.1.2.1.3.{#TEMINDEX}'
+              key: 'system.tem[{#TEMDESCR}]'
+              history: 7d
+              trigger_prototypes:
+                - uuid: e25a84385ec04222ac108fa4e144081c
+                  expression: 'last(/Hillstone StoneOS 5.5/system.tem[{#TEMDESCR}])>=85'
+                  name: '{#TEMDESCR}温度已超过85℃！'
+                  priority: WARNING
+                  manual_close: 'YES'
+      macros:
+        - macro: '{$CPU.UTIL.CRIT}'
+          value: '85'
+        - macro: '{$ICMP_LOSS_WARN}'
+          value: '20'
+        - macro: '{$MEMORY.UTIL.CRIT}'
+          value: '85'
+        - macro: '{$SESSION.UTIL.CRIT}'
+          value: '85'
+  graphs:
+    - uuid: e55795bd8977440c99bb326a52f652c3
+      name: 'CPU 利用率'
+      graph_items:
+        - color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'Hillstone StoneOS 5.5'
+            key: system.cpu.util
+    - uuid: 8e13a8ceeda3484b8eca233737d4a6f2
+      name: 会话利用率
+      graph_items:
+        - color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'Hillstone StoneOS 5.5'
+            key: system.session.util
+    - uuid: b0ec9f1b13a54b7fbefcb7e435ad17ab
+      name: 内存利用率
+      graph_items:
+        - color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'Hillstone StoneOS 5.5'
+            key: system.memory.util
